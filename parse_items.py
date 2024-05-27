@@ -3,6 +3,7 @@ Convert the text copied from https://ark.gamepedia.com/Item_IDs/Ammunition?actio
 to Python dictionary in 'ark_items.py
 """
 
+import json
 
 def get_key(k: str):
     bidx = k.find('(')
@@ -16,34 +17,45 @@ def get_key(k: str):
     return k.upper()
 
 
-def blueprint(v: str):
+def get_blueprint(v: str):
     return f"\"Blueprint'/Game/{v}'\""
 
 
-keys = set()
+def get_group(line: str):
+    g = line.replace('#', '')
+    g = g.strip()
+    return g.upper()
+
+
+items = {}
+groups = {}
 
 with open('items.txt', 'r') as fin:
-    with open('ark_items.py', 'w') as fout:
-        fout.write('ark_items = {\n')
-        for line in fin:
-            line = line.rstrip()
-            if not line:
-                continue
+    for line in fin:
+        line = line.rstrip()
+        if not line:
+            continue
 
-            if line.startswith("#"):
-                fout.write("\n")
-                fout.write("    " + line)
-                fout.write("\n")
-                continue
+        if line.startswith("#"):
+            group = get_group(line)
+            groups[group] = []
+            continue
 
-            values = line.split('|')
-            key = get_key(values[1])
-            bp = blueprint(values[5])
+        values = line.split('|')
+        key = get_key(values[1])
+        bp = get_blueprint(values[5])
 
-            if key in keys:
-                continue
+        if key in items:
+            continue
 
-            keys.add(key)
-            key = "    '{}':".format(key).ljust(42)
-            fout.write(key + bp + ",\n")
-        fout.write('\n}\n')
+        items[key] = bp
+        groups[group].append(key)
+
+ARK_DATA = {
+    'items': items,
+    'groups': groups,
+}
+
+with open('www/ark_data.json', 'w', encoding='utf-8') as f:
+    json.dump(ARK_DATA, f, ensure_ascii=False, indent=4)
+
